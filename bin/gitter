@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'commander/import'
+# require '../lib/gitter.rb' 
+
+program :version, '0.0.1'
+program :description, 'github backup client'
+
+command :backup do |c|
+  c.syntax = 'gitter backup [options]'
+  c.summary = ''
+  c.description = ''
+  c.example 'description', 'command example'
+  c.option '-d', '--directory', 'Where to place the backup repos? This should be an absolute path.'
+  c.option '-a', '--token', 'Access token is currently the only form of authentication supported by this gem. You can get one in your github settings.'
+  c.option '-t', '--type', "Type of repos to grab: 'private', 'public', or 'all'. Defaults to 'all'."
+  c.option '-o', '--organization', 'Grabs org repos, rather than user repos.'
+  c.action do |args, options|
+    # Do something or c.when_called Gitter::Commands::Backup
+    client = Gitter::GithubClient.new(options.token)
+    
+    if options.organization
+	    repos = client.get_org_repos(options.type, options.organization)
+	else
+		repos = client.get_repos(options.type)
+	end
+
+	client.backup(repos, options.directory)
+  end
+end
+
