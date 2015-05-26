@@ -2,23 +2,95 @@
 
 require 'rubygems'
 require 'commander/import'
-# require '../lib/gitter.rb' 
+require 'octokit'
 
-program :version, '0.0.1'
+class GithubClient
+		
+	def initialize(access_token)
+		@client = Octokit::Client.new(:access_token => access_token)
+	end
+
+	def user()
+		@client.user
+	end
+
+	def get_org_repos(type, org)
+		p type
+		p org
+		@client.org_repos(org, type: type)
+	end
+
+	def get_repos(type=all, *org)
+		@client.repos(user: user, type: type)
+	end
+
+	def get_ssh_urls(repos)
+		repos.map! {|repo| repo.ssh_url}
+	end
+
+	def get_repo_dir_name(repo)
+		repo[:name]
+	end
+
+	def parse_path(directory)
+		directory.match('(.+\/)(.+)')
+	end
+
+	def create_destination_directory(directory)
+		print "Directory not found. Creating destination for backup at: #{directory}"
+		path_parts = parse_path(directory)
+		Dir.chdir(path_parts[1]) { Dir.mkdir(path_parts[2]) }
+	end
+
+	def clone(repo, path)
+		Dir.chdir(path) do 
+			system("git clone #{repo[:ssh_url]}")
+		end
+	end
+
+	def update(repo, path)
+		Dir.chdir(path) do 
+			Dir.chdir(repo[:name]) { system("git pull #{repo[:ssh_url]}") }
+		end
+	end
+
+	def backup(repos, directory)
+		if not Dir.exists?(directory)
+			create_destination_directory(directory)
+			repos.each {|repo| clone(repo, directory)}
+		else
+			Dir.chdir(directory)
+			repos.each do |repo| 
+				Dir.exists?(repo[:name]) ? update(repo, directory) : clone(repo, directory)
+			end
+		end
+
+	end
+end
+
+
+
+program :version, '0.1.0'
 program :description, 'github backup client'
+
+client = GithubClient.new('hello')
 
 command :backup do |c|
   c.syntax = 'gitter backup [options]'
   c.summary = ''
   c.description = ''
   c.example 'description', 'command example'
-  c.option '-d', '--directory', 'Where to place the backup repos? This should be an absolute path.'
-  c.option '-a', '--token', 'Access token is currently the only form of authentication supported by this gem. You can get one in your github settings.'
-  c.option '-t', '--type', "Type of repos to grab: 'private', 'public', or 'all'. Defaults to 'all'."
-  c.option '-o', '--organization', 'Grabs org repos, rather than user repos.'
+  c.option '-d', '--directory DIRECTORY', String, 'Where to place the backup repos? This should be an absolute path.'
+  c.option '-a', '--token TOKEN', String, 'Access token is currently the only form of authentication supported by this gem. You can get one in your github settings.'
+  c.option '-r', '--type TYPE', String, 'Type of repos to grab. Can be public or private; defaults to all'
+  c.option '-o', '--organization ORG', String, 'Grabs org repos, rather than user repos.'
   c.action do |args, options|
+  	options.default :type => 'all', :directory => ''
+
     # Do something or c.when_called Gitter::Commands::Backup
-    client = Gitter::GithubClient.new(options.token)
+    client = GithubClient.new(options.token)
+    p client
+    p options
     
     if options.organization
 	    repos = client.get_org_repos(options.type, options.organization)

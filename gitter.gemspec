@@ -1,6 +1,6 @@
 # coding: utf-8
-$.push File.expand_path('../lib', __FILE__)
-# $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'gitter/version'
 
 Gem::Specification.new do |spec|
@@ -13,9 +13,11 @@ Gem::Specification.new do |spec|
   spec.description   = %q{Backs up github repos to a specificed local directory.}
   spec.homepage      = "TODO: Put your gem's website or public repo URL here."
 
-  spec.files         = ['lib/gitter.rb']
 
-  spec.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
+
+  spec.files         = ['lib/gitter.rb']
+  # spec.bindir        = "exe"
+  spec.executables << 'gitter'
   spec.require_paths = ["lib"]
 
   if spec.respond_to?(:metadata)
